@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Create Project
+echo "Create New Project: ${NEW_PROJECT_NAME}"
+newProjectId=$(curl -s \
+	-X POST \
+	-H "Authorization: token ${GITHUB_TOKEN}" \
+	-H "Accept: application/vnd.github.inertia-preview+json" \
+	"https://api.github.com/repos/${OWNER}/${REPOSITORY_NAME}/projects" \
+	-d "{\"name\":\"${NEW_PROJECT_NAME}\"}" | jq .id)
+echo ">>> Project [${NEW_PROJECT_NAME}] has created."
+
+# Get Template Column ids
+templateColumnIds=( $(curl -s \
+	-H "Authorization: token ${GITHUB_TOKEN}" \
+	-H "Accept: application/vnd.github.inertia-preview+json" \
+	"https://api.github.com/projects/${SRC_PROJECT_ID}/columns" | jq .[].id) )
+
+for templateColumnId in "${templateColumnIds[@]}"; do
+	# Get Template Column Name
+	columnName=$(curl -s \
+		-H "Authorization: token ${GITHUB_TOKEN}" \
+		-H "Accept: application/vnd.github.inertia-preview+json" \
+		"https://api.github.com/projects/columns/${templateColumnId}" | jq .name)
+
+	# Create Column to New Project
+	echo "Create Column: ${columnName}"
+	newColumnId=$(curl -s \
+		-X POST \
+		-H "Authorization: token ${GITHUB_TOKEN}" \
+		-H "Accept: application/vnd.github.inertia-preview+json" \
+		"https://api.github.com/projects/${newProjectId}/columns" \
+		-d "{\"name\":${columnName}}" | jq .id)
+	echo ">>> Column [${columnName}] has created."
+
+	# Get Template Column Card Ids
+	templateCardIds=( $(curl -s \
+		-H "Authorization: token ${GITHUB_TOKEN}" \
+		-H "Accept: application/vnd.github.inertia-preview+json" \
+		"https://api.github.com/projects/columns/${templateColumnId}/cards" | jq reverse | jq .[].id) )
+
+	for cardId in "${templateCardIds[@]}"; do
+		# Create Card to New Project Column
+		echo "Create Card to [${columnName}]"
+		note=$(curl -s \
+			-H "Authorization: token ${GITHUB_TOKEN}" \
+			-H "Accept: application/vnd.github.inertia-preview+json" \
+			"https://api.github.com/projects/columns/cards/${cardId}" | jq .note)
+		data='{"note":'${note}'}'
+		$(curl -s \
+			-X POST \
+			-H "Authorization: token ${GITHUB_TOKEN}" \
+			-H "Accept: application/vnd.github.inertia-preview+json" \
+			"https://api.github.com/projects/columns/${newColumnId}/cards" \
+			-d "${data}")
+		echo ">>> Card has created on [${columnName}]."
+
+	done
+done
+

@@ -11,3 +11,8 @@
 ```sh
 ./duplicateGitHubProject -s 12345 -o taji-taji -r YourRepositoryName -t xxxxxxxx -n NewProjectName
 ```
+
+## Note
+
+- Automation の設定はコピーされません
+

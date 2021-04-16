@@ -12,6 +12,11 @@
 ./duplicateGitHubProject -s 12345 -o taji-taji -r YourRepositoryName -t xxxxxxxx -n NewProjectName
 ```
 
+## Required
+
+- curl
+- jq
+
 ## Note
 
 - Automation の設定はコピーされません

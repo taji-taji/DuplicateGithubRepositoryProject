@@ -1,60 +1,109 @@
 #!/bin/bash
 
+usage() {
+cat << EOF
+Duplicate GitHub repository Project.
+
+Usage:
+  $0 [-s] [-o] [-r] [-t] [-n] [-h]
+Options:
+  -o      オーナー名
+  -r      リポジトリ名
+  -t      GitHubアクセストークン
+  -n      作成する Project の名前
+  -s      複製元の Project ID
+  -h      ヘルプ
+EOF
+exit 1
+}
+
+if [ "$OPTIND" = 1 ]; then
+  while getopts ho:r:t:n:s: OPT
+  do
+    case $OPT in
+      h)
+        usage
+        ;;
+      o)
+        OWNER=${OPTARG}
+        ;;
+      r)
+        REPOSITORY_NAME=${OPTARG}
+        ;;
+      t)
+        GITHUB_TOKEN=${OPTARG}
+        ;;
+      n)
+        NEW_PROJECT_NAME=${OPTARG}
+        ;;
+      s)
+        SRC_PROJECT_ID=${OPTARG}
+        ;;
+      \?)
+        usage
+        ;;
+    esac
+  done
+else
+  echo "No installed getopts-command." 1>&2
+  exit 1
+fi
+
 # Create Project
 echo "Create New Project: ${NEW_PROJECT_NAME}"
 newProjectId=$(curl -s \
-	-X POST \
-	-H "Authorization: token ${GITHUB_TOKEN}" \
-	-H "Accept: application/vnd.github.inertia-preview+json" \
-	"https://api.github.com/repos/${OWNER}/${REPOSITORY_NAME}/projects" \
-	-d "{\"name\":\"${NEW_PROJECT_NAME}\"}" | jq .id)
+  -X POST \
+  -H "Authorization: token ${GITHUB_TOKEN}" \
+  -H "Accept: application/vnd.github.inertia-preview+json" \
+  "https://api.github.com/repos/${OWNER}/${REPOSITORY_NAME}/projects" \
+  -d "{\"name\":\"${NEW_PROJECT_NAME}\"}" | jq .id)
 echo ">>> Project [${NEW_PROJECT_NAME}] has created."
 
 # Get Template Column ids
 templateColumnIds=( $(curl -s \
-	-H "Authorization: token ${GITHUB_TOKEN}" \
-	-H "Accept: application/vnd.github.inertia-preview+json" \
-	"https://api.github.com/projects/${SRC_PROJECT_ID}/columns" | jq .[].id) )
+  -H "Authorization: token ${GITHUB_TOKEN}" \
+  -H "Accept: application/vnd.github.inertia-preview+json" \
+  "https://api.github.com/projects/${SRC_PROJECT_ID}/columns" | jq .[].id) )
 
 for templateColumnId in "${templateColumnIds[@]}"; do
-	# Get Template Column Name
-	columnName=$(curl -s \
-		-H "Authorization: token ${GITHUB_TOKEN}" \
-		-H "Accept: application/vnd.github.inertia-preview+json" \
-		"https://api.github.com/projects/columns/${templateColumnId}" | jq .name)
+  # Get Template Column Name
+  columnName=$(curl -s \
+    -H "Authorization: token ${GITHUB_TOKEN}" \
+    -H "Accept: application/vnd.github.inertia-preview+json" \
+    "https://api.github.com/projects/columns/${templateColumnId}" | jq .name)
 
-	# Create Column to New Project
-	echo "Create Column: ${columnName}"
-	newColumnId=$(curl -s \
-		-X POST \
-		-H "Authorization: token ${GITHUB_TOKEN}" \
-		-H "Accept: application/vnd.github.inertia-preview+json" \
-		"https://api.github.com/projects/${newProjectId}/columns" \
-		-d "{\"name\":${columnName}}" | jq .id)
-	echo ">>> Column [${columnName}] has created."
+  # Create Column to New Project
+  echo "Create Column: ${columnName}"
+  newColumnId=$(curl -s \
+    -X POST \
+    -H "Authorization: token ${GITHUB_TOKEN}" \
+    -H "Accept: application/vnd.github.inertia-preview+json" \
+    "https://api.github.com/projects/${newProjectId}/columns" \
+    -d "{\"name\":${columnName}}" | jq .id)
+  echo ">>> Column [${columnName}] has created."
 
-	# Get Template Column Card Ids
-	templateCardIds=( $(curl -s \
-		-H "Authorization: token ${GITHUB_TOKEN}" \
-		-H "Accept: application/vnd.github.inertia-preview+json" \
-		"https://api.github.com/projects/columns/${templateColumnId}/cards" | jq reverse | jq .[].id) )
+  # Get Template Column Card Ids
+  templateCardIds=( $(curl -s \
+    -H "Authorization: token ${GITHUB_TOKEN}" \
+    -H "Accept: application/vnd.github.inertia-preview+json" \
+    "https://api.github.com/projects/columns/${templateColumnId}/cards" | jq reverse | jq .[].id) )
 
-	for cardId in "${templateCardIds[@]}"; do
-		# Create Card to New Project Column
-		echo "Create Card to [${columnName}]"
-		note=$(curl -s \
-			-H "Authorization: token ${GITHUB_TOKEN}" \
-			-H "Accept: application/vnd.github.inertia-preview+json" \
-			"https://api.github.com/projects/columns/cards/${cardId}" | jq .note)
-		data='{"note":'${note}'}'
-		$(curl -s \
-			-X POST \
-			-H "Authorization: token ${GITHUB_TOKEN}" \
-			-H "Accept: application/vnd.github.inertia-preview+json" \
-			"https://api.github.com/projects/columns/${newColumnId}/cards" \
-			-d "${data}")
-		echo ">>> Card has created on [${columnName}]."
+  for cardId in "${templateCardIds[@]}"; do
+    # Create Card to New Project Column
+    echo "Create Card to [${columnName}]"
+    note=$(curl -s \
+      -H "Authorization: token ${GITHUB_TOKEN}" \
+      -H "Accept: application/vnd.github.inertia-preview+json" \
+      "https://api.github.com/projects/columns/cards/${cardId}" | jq .note)
+    data='{"note":'${note}'}'
+    $(curl -s \
+      -X POST \
+      -H "Authorization: token ${GITHUB_TOKEN}" \
+      -H "Accept: application/vnd.github.inertia-preview+json" \
+      "https://api.github.com/projects/columns/${newColumnId}/cards" \
+      -d "${data}")
+    echo ">>> Card has created on [${columnName}]."
 
-	done
+  done
 done
 

@@ -12,6 +12,15 @@
 ./duplicateGitHubProject -s 12345 -o taji-taji -r YourRepositoryName -t xxxxxxxx -n NewProjectName
 ```
 
+### Options
+
+- `-s`: 複製元のプロジェクトのID
+- `-o`: オーナー名
+- `-r`: リポジトリ名
+- `-t`: GitHub アクセストークン
+- `-n`: 新しく作成するプロジェクト名
+- `-h`: ヘルプ
+
 ## Required
 
 - curl

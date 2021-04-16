@@ -31,3 +31,4 @@
 - Automation の設定はコピーされません
 - リポジトリ Project のみ対応です
   - Organization Project や User Project には対応していません
+- 複製元のプロジェクトの ID は GitHub の GUI 上では（恐らく）分からないので、別途 GitHub API からプロジェクトリストを取得する等して確認する必要があります

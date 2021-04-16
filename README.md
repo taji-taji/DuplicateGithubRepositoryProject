@@ -15,4 +15,5 @@
 ## Note
 
 - Automation の設定はコピーされません
-
+- リポジトリ Project のみ対応です
+  - Organization Project や User Project には対応していません

@@ -176,7 +176,7 @@ for i in ${!newColumnIds[@]}; do
 
   print_progress "Start adding cards to [${columnName}] column."
 
-  echo ${templateColumnJson} | jq -c '.cards.nodes[].note' | \
+  echo ${templateColumnJson} | jq -c '.cards.nodes | reverse | .[].note' | \
     while read -r note; do
       jq -cn '{
         query: $query,

@@ -186,16 +186,16 @@ for i in ${!newColumnIds[@]}; do
         }
       }' \
         --arg query 'mutation($note: String!, $projectColumnId: String!) {
-        addProjectCard(input: {
-          note: $note,
-          projectColumnId: $projectColumnId
-        }) {
-          clientMutationId
-        }
-      }' \
+          addProjectCard(input: {
+            note: $note,
+            projectColumnId: $projectColumnId
+          }) {
+            clientMutationId
+          }
+        }' \
         --argjson note "${note}" \
         --arg projectColumnId "${columnId}" \
-      | request  > /dev/null 2>&1
+        | request  > /dev/null 2>&1
   done
   print_progress "Cards hsa been added to [${columnName}] column."
 done

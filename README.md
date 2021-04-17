@@ -14,12 +14,12 @@
 
 ### Options
 
-- `-s`: 複製元のプロジェクトの番号 (プロジェクトの URL の末尾の数字)
-- `-o`: オーナー名
-- `-r`: リポジトリ名
-- `-t`: GitHub アクセストークン
-- `-n`: 新しく作成するプロジェクト名
-- `-h`: ヘルプ
+- `-s` (**s**ource project number): 複製元のプロジェクトの番号 (プロジェクトの URL の末尾の数字)
+- `-o` (**o**wner name): オーナー名
+- `-r` (**r**epository name): リポジトリ名
+- `-t` (github access **t**oken): GitHub アクセストークン
+- `-n` (**n**ew project name): 新しく作成するプロジェクト名
+- `-h`(**h**elp): ヘルプ
 
 ## Required
 

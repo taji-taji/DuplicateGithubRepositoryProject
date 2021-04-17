@@ -70,14 +70,13 @@ print_progress () {
 # Get Template Project
 templateProjectJson=$(jq -cn '{
   query: $query,
-  operationName: $operationName,
   variables: {
     owner: $owner,
     repo: $repo,
     projectNumber: $projectNumber
   }
 }' \
-  --arg query 'query getProject($owner: String!, $repo: String!, $projectNumber: Int!) {
+  --arg query 'query($owner: String!, $repo: String!, $projectNumber: Int!) {
     repository(owner: $owner, name: $repo) {
       project(number: $projectNumber) {
         id
@@ -98,7 +97,6 @@ templateProjectJson=$(jq -cn '{
       }
     }
   }' \
-  --arg operationName getProject \
   --arg owner "${OWNER}" \
   --arg repo "${REPOSITORY_NAME}" \
   --argjson projectNumber "${SRC_PROJECT_NUMBER}" \
@@ -112,14 +110,13 @@ targetOwnerId=$(echo ${templateProjectJson} | jq .owner.id)
 print_progress "Start creating project."
 newProjectNumber=$(jq -cn '{
   query: $query,
-  operationName: $operationName,
   variables: {
     sourceId: $sourceId,
     targetOwnerId: $targetOwnerId,
     projectName: $projectName
   }
 }' \
-  --arg query 'mutation cloneProject($sourceId: String!, $targetOwnerId: String!, $projectName: String!) {
+  --arg query 'mutation($sourceId: String!, $targetOwnerId: String!, $projectName: String!) {
     cloneProject(input:{
       includeWorkflows:true,
       sourceId: $sourceId,
@@ -131,7 +128,6 @@ newProjectNumber=$(jq -cn '{
       }
     }
 }' \
-  --arg operationName cloneProject \
   --arg sourceId "${sourceId}" \
   --arg targetOwnerId "${targetOwnerId}" \
   --arg projectName "${NEW_PROJECT_NAME}" \
@@ -146,14 +142,13 @@ print_progress "Project [${NEW_PROJECT_NAME}] has beed created."
 # Get New Project
 newProjectJson=$(jq -cn '{
   query: $query,
-  operationName: $operationName,
   variables: {
     owner: $owner,
     repo: $repo,
     projectNumber: $projectNumber
   }
 }' \
-  --arg query 'query getProject($owner: String!, $repo: String!, $projectNumber: Int!) {
+  --arg query 'query($owner: String!, $repo: String!, $projectNumber: Int!) {
     repository(owner: $owner, name: $repo) {
       project(number: $projectNumber) {
         columns(first: 10) {
@@ -165,7 +160,6 @@ newProjectJson=$(jq -cn '{
       }
     }
   }' \
-  --arg operationName getProject \
   --arg owner "${OWNER}" \
   --arg repo "${REPOSITORY_NAME}" \
   --argjson projectNumber ${newProjectNumber} \
@@ -186,13 +180,12 @@ for i in ${!newColumnIds[@]}; do
     while read -r note; do
       jq -cn '{
         query: $query,
-        operationName: $operationName,
         variables: {
           note: $note,
           projectColumnId: $projectColumnId
         }
       }' \
-        --arg query 'mutation addProjectCard($note: String!, $projectColumnId: String!) {
+        --arg query 'mutation($note: String!, $projectColumnId: String!) {
         addProjectCard(input: {
           note: $note,
           projectColumnId: $projectColumnId
@@ -200,7 +193,6 @@ for i in ${!newColumnIds[@]}; do
           clientMutationId
         }
       }' \
-        --arg operationName addProjectCard \
         --argjson note "${note}" \
         --arg projectColumnId "${columnId}" \
       | request  > /dev/null 2>&1

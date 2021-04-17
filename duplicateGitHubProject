@@ -1,4 +1,5 @@
 #!/bin/bash
+URL="https://api.github.com/graphql"
 
 usage() {
 cat << EOF
@@ -11,7 +12,7 @@ Options:
   -r      リポジトリ名
   -t      GitHubアクセストークン
   -n      作成する Project の名前
-  -s      複製元の Project ID
+  -s      複製元の Project Number (プロジェクト URL の末尾の数字)
   -h      ヘルプ
 EOF
 exit 1
@@ -37,7 +38,7 @@ if [ "$OPTIND" = 1 ]; then
         NEW_PROJECT_NAME=${OPTARG}
         ;;
       s)
-        SRC_PROJECT_ID=${OPTARG}
+        SRC_PROJECT_NUMBER=${OPTARG}
         ;;
       \?)
         usage
@@ -49,61 +50,160 @@ else
   exit 1
 fi
 
-# Create Project
-echo "Create New Project: ${NEW_PROJECT_NAME}"
-newProjectId=$(curl -s \
-  -X POST \
-  -H "Authorization: token ${GITHUB_TOKEN}" \
-  -H "Accept: application/vnd.github.inertia-preview+json" \
-  "https://api.github.com/repos/${OWNER}/${REPOSITORY_NAME}/projects" \
-  -d "{\"name\":\"${NEW_PROJECT_NAME}\"}" | jq .id)
-echo ">>> Project [${NEW_PROJECT_NAME}] has created."
+request () {
+  if [ -p /dev/stdin ]; then
+    if [ "`echo $@`" == "" ]; then 
+      __str=`cat -`
+    else
+      __str=$@
+    fi
+  else
+    __str=$@
+  fi
+  echo $(echo "${__str}" | curl -s -H 'Content-Type: application/json' -H "Authorization: bearer ${GITHUB_TOKEN}" -X POST -d @- ${URL})
+}
 
-# Get Template Column ids
-templateColumnIds=( $(curl -s \
-  -H "Authorization: token ${GITHUB_TOKEN}" \
-  -H "Accept: application/vnd.github.inertia-preview+json" \
-  "https://api.github.com/projects/${SRC_PROJECT_ID}/columns" | jq .[].id) )
+print_progress () {
+  echo ">>>>> $1"
+}
 
-for templateColumnId in "${templateColumnIds[@]}"; do
-  # Get Template Column Name
-  columnName=$(curl -s \
-    -H "Authorization: token ${GITHUB_TOKEN}" \
-    -H "Accept: application/vnd.github.inertia-preview+json" \
-    "https://api.github.com/projects/columns/${templateColumnId}" | jq .name)
+# Get Template Project
+templateProjectJson=$(jq -cn '{
+  query: $query,
+  operationName: $operationName,
+  variables: {
+    owner: $owner,
+    repo: $repo,
+    projectNumber: $projectNumber
+  }
+}' \
+  --arg query 'query getProject($owner: String!, $repo: String!, $projectNumber: Int!) {
+    repository(owner: $owner, name: $repo) {
+      project(number: $projectNumber) {
+        id
+        owner {
+          id
+        }
+        columns(first: 10) {
+          nodes {
+            id
+            name
+            cards(first: 10) {
+              nodes {
+                note
+              }
+            }
+          }
+        }
+      }
+    }
+  }' \
+  --arg operationName getProject \
+  --arg owner "${OWNER}" \
+  --arg repo "${REPOSITORY_NAME}" \
+  --argjson projectNumber "${SRC_PROJECT_NUMBER}" \
+| request \
+| jq -r '.data.repository.project')
 
-  # Create Column to New Project
-  echo "Create Column: ${columnName}"
-  newColumnId=$(curl -s \
-    -X POST \
-    -H "Authorization: token ${GITHUB_TOKEN}" \
-    -H "Accept: application/vnd.github.inertia-preview+json" \
-    "https://api.github.com/projects/${newProjectId}/columns" \
-    -d "{\"name\":${columnName}}" | jq .id)
-  echo ">>> Column [${columnName}] has created."
+sourceId=$(echo ${templateProjectJson} | jq .id)
+targetOwnerId=$(echo ${templateProjectJson} | jq .owner.id)
 
-  # Get Template Column Card Ids
-  templateCardIds=( $(curl -s \
-    -H "Authorization: token ${GITHUB_TOKEN}" \
-    -H "Accept: application/vnd.github.inertia-preview+json" \
-    "https://api.github.com/projects/columns/${templateColumnId}/cards" | jq reverse | jq .[].id) )
+# Create New Project
+print_progress "Start creating project."
+newProjectNumber=$(jq -cn '{
+  query: $query,
+  operationName: $operationName,
+  variables: {
+    sourceId: $sourceId,
+    targetOwnerId: $targetOwnerId,
+    projectName: $projectName
+  }
+}' \
+  --arg query 'mutation cloneProject($sourceId: String!, $targetOwnerId: String!, $projectName: String!) {
+    cloneProject(input:{
+      includeWorkflows:true,
+      sourceId: $sourceId,
+      name: $projectName,
+      targetOwnerId: $targetOwnerId
+    }) {
+      project {
+        number
+      }
+    }
+}' \
+  --arg operationName cloneProject \
+  --arg sourceId "${sourceId}" \
+  --arg targetOwnerId "${targetOwnerId}" \
+  --arg projectName "${NEW_PROJECT_NAME}" \
+| request \
+| jq -r '.data.cloneProject.project.number')
 
-  for cardId in "${templateCardIds[@]}"; do
-    # Create Card to New Project Column
-    echo "Create Card to [${columnName}]"
-    note=$(curl -s \
-      -H "Authorization: token ${GITHUB_TOKEN}" \
-      -H "Accept: application/vnd.github.inertia-preview+json" \
-      "https://api.github.com/projects/columns/cards/${cardId}" | jq .note)
-    data='{"note":'${note}'}'
-    $(curl -s \
-      -X POST \
-      -H "Authorization: token ${GITHUB_TOKEN}" \
-      -H "Accept: application/vnd.github.inertia-preview+json" \
-      "https://api.github.com/projects/columns/${newColumnId}/cards" \
-      -d "${data}")
-    echo ">>> Card has created on [${columnName}]."
+# Wait for the clone to complete...
+sleep 3
 
+print_progress "Project [${NEW_PROJECT_NAME}] has beed created."
+
+# Get New Project
+newProjectJson=$(jq -cn '{
+  query: $query,
+  operationName: $operationName,
+  variables: {
+    owner: $owner,
+    repo: $repo,
+    projectNumber: $projectNumber
+  }
+}' \
+  --arg query 'query getProject($owner: String!, $repo: String!, $projectNumber: Int!) {
+    repository(owner: $owner, name: $repo) {
+      project(number: $projectNumber) {
+        columns(first: 10) {
+          nodes {
+            id
+            name
+          }
+        }
+      }
+    }
+  }' \
+  --arg operationName getProject \
+  --arg owner "${OWNER}" \
+  --arg repo "${REPOSITORY_NAME}" \
+  --argjson projectNumber ${newProjectNumber} \
+| request \
+| jq -r '.data.repository.project.columns.nodes')
+
+newColumnIds=( $(echo ${newProjectJson} | jq -r '.[].id') )
+
+# Add Cards
+for i in ${!newColumnIds[@]}; do
+  columnId=${newColumnIds[$i]}
+  columnName=$(echo ${newProjectJson} | jq  ".[$i].name")
+  templateColumnJson=$(echo ${templateProjectJson} | jq ".columns.nodes[] | select(.name == ${columnName})")
+
+  print_progress "Start adding cards to [${columnName}] column."
+
+  echo ${templateColumnJson} | jq -c '.cards.nodes[].note' | \
+    while read -r note; do
+      jq -cn '{
+        query: $query,
+        operationName: $operationName,
+        variables: {
+          note: $note,
+          projectColumnId: $projectColumnId
+        }
+      }' \
+        --arg query 'mutation addProjectCard($note: String!, $projectColumnId: String!) {
+        addProjectCard(input: {
+          note: $note,
+          projectColumnId: $projectColumnId
+        }) {
+          clientMutationId
+        }
+      }' \
+        --arg operationName addProjectCard \
+        --argjson note "${note}" \
+        --arg projectColumnId "${columnId}" \
+      | request  > /dev/null 2>&1
   done
+  print_progress "Cards hsa been added to [${columnName}] column."
 done
-

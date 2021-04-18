@@ -4,25 +4,24 @@
 import PackageDescription
 
 let package = Package(
-    name: "Swift",
-    products: [
-        // Products define the executables and libraries a package produces, and make them visible to other packages.
-        .library(
-            name: "Swift",
-            targets: ["Swift"]),
+    name: "DuplicateGitHubProject",
+    platforms: [
+        .macOS(.v10_15),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-        // .package(url: /* package url */, from: "1.0.0"),
+        .package(url: "https://github.com/vapor/console-kit.git", from: "4.0.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
-            name: "Swift",
-            dependencies: []),
+            name: "DuplicateGitHubProject",
+            dependencies: [
+                .product(name: "ConsoleKit", package: "console-kit")
+            ]),
         .testTarget(
-            name: "SwiftTests",
-            dependencies: ["Swift"]),
+            name: "DuplicateGitHubProjectTests",
+            dependencies: ["DuplicateGitHubProject"]),
     ]
 )

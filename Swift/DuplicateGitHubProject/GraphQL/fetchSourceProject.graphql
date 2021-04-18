@@ -1,0 +1,21 @@
+query fetchSourceRepository($owner: String!, $repo: String!, $projectNumber: Int!) {
+  repository(owner: $owner, name: $repo) {
+    project(number: $projectNumber) {
+      id
+      owner {
+        id
+      }
+      columns(first: 10) {
+        nodes {
+          id
+          name
+          cards(first: 10) {
+            nodes {
+              note
+            }
+          }
+        }
+      }
+    }
+  }
+}

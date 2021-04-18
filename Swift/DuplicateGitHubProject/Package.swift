@@ -10,7 +10,8 @@ let package = Package(
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-        .package(url: "https://github.com/vapor/console-kit.git", from: "4.0.0")
+        .package(url: "https://github.com/vapor/console-kit.git", from: "4.0.0"),
+        .package(url: "https://github.com/maticzav/swift-graphql.git", from: "2.2.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -18,7 +19,8 @@ let package = Package(
         .target(
             name: "DuplicateGitHubProject",
             dependencies: [
-                .product(name: "ConsoleKit", package: "console-kit")
+                .product(name: "ConsoleKit", package: "console-kit"),
+                .product(name: "SwiftGraphQL", package: "swift-graphql"),
             ]),
         .testTarget(
             name: "DuplicateGitHubProjectTests",

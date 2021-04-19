@@ -8,5 +8,5 @@ struct Project: Node {
     let id: String
     let name: String
     let number: Int
-    let columns: ProjectColumnConnection
+    let columns: [ProjectColumn]
 }

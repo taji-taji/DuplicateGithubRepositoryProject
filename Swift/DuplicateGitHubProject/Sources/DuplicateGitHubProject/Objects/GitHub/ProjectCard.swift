@@ -4,7 +4,6 @@
 
 import Foundation
 
-struct ProjectCard: Node {
-    let id: String
+struct ProjectCard {
     let note: String?
 }

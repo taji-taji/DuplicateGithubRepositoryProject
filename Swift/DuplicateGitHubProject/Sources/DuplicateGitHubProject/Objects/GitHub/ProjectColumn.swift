@@ -7,5 +7,5 @@ import Foundation
 struct ProjectColumn: Node {
     let id: String
     let name: String
-    let cards: ProjectCardConnection
+    let cards: [ProjectCard]
 }

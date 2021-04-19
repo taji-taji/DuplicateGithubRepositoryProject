@@ -45,11 +45,9 @@ struct DuplicateGitHubProjectCommand: Command {
             // TODO: Error Handling
             return
         }
-        context.console.print(githubAccessToken)
-        context.console.print(newProjectName)
-        context.console.print("\(sourceProjectNumber)")
-        context.console.print(owner)
-        context.console.print(repositoryName)
+        guard let view = context.console as? DuplicateProjectViewInterface else { return }
+        let presenter = DuplicateProjectPresenter(view: view, inputBoundary: DuplicateProjectUseCase(httpClient: HTTPClient(githubToken: githubAccessToken)))
+        presenter.print(owner: owner)
     }
 }
 

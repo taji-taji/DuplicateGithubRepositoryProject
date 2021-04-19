@@ -14,6 +14,8 @@ public final class FetchSourceRepositoryQuery: GraphQLQuery {
         project(number: $projectNumber) {
           __typename
           id
+          number
+          name
           owner {
             __typename
             id
@@ -129,6 +131,8 @@ public final class FetchSourceRepositoryQuery: GraphQLQuery {
           return [
             GraphQLField("__typename", type: .nonNull(.scalar(String.self))),
             GraphQLField("id", type: .nonNull(.scalar(GraphQLID.self))),
+            GraphQLField("number", type: .nonNull(.scalar(Int.self))),
+            GraphQLField("name", type: .nonNull(.scalar(String.self))),
             GraphQLField("owner", type: .nonNull(.object(Owner.selections))),
             GraphQLField("columns", arguments: ["first": 10], type: .nonNull(.object(Column.selections))),
           ]
@@ -140,8 +144,8 @@ public final class FetchSourceRepositoryQuery: GraphQLQuery {
           self.resultMap = unsafeResultMap
         }
 
-        public init(id: GraphQLID, owner: Owner, columns: Column) {
-          self.init(unsafeResultMap: ["__typename": "Project", "id": id, "owner": owner.resultMap, "columns": columns.resultMap])
+        public init(id: GraphQLID, number: Int, name: String, owner: Owner, columns: Column) {
+          self.init(unsafeResultMap: ["__typename": "Project", "id": id, "number": number, "name": name, "owner": owner.resultMap, "columns": columns.resultMap])
         }
 
         public var __typename: String {
@@ -159,6 +163,26 @@ public final class FetchSourceRepositoryQuery: GraphQLQuery {
           }
           set {
             resultMap.updateValue(newValue, forKey: "id")
+          }
+        }
+
+        /// The project's number.
+        public var number: Int {
+          get {
+            return resultMap["number"]! as! Int
+          }
+          set {
+            resultMap.updateValue(newValue, forKey: "number")
+          }
+        }
+
+        /// The project's name.
+        public var name: String {
+          get {
+            return resultMap["name"]! as! String
+          }
+          set {
+            resultMap.updateValue(newValue, forKey: "name")
           }
         }
 

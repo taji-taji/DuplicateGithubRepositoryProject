@@ -2,6 +2,8 @@ query fetchSourceRepository($owner: String!, $repo: String!, $projectNumber: Int
   repository(owner: $owner, name: $repo) {
     project(number: $projectNumber) {
       id
+      number
+      name
       owner {
         id
       }

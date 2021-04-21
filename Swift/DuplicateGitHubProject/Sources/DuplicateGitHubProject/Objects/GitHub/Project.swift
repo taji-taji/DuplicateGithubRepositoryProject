@@ -8,5 +8,6 @@ struct Project: Node {
     let id: String
     let name: String
     let number: Int
+    let ownerId: String
     let columns: [ProjectColumn]
 }

@@ -1,4 +1,5 @@
 import ConsoleKit
+import Combine
 import Foundation
 
 struct DuplicateGitHubProjectCommand: Command {
@@ -45,9 +46,45 @@ struct DuplicateGitHubProjectCommand: Command {
             // TODO: Error Handling
             return
         }
-        guard let view = context.console as? DuplicateProjectViewInterface else { return }
-        let presenter = DuplicateProjectPresenter(view: view, inputBoundary: DuplicateProjectUseCase(httpClient: HTTPClient(githubToken: githubAccessToken)))
-        presenter.print(owner: owner)
+        let repositroy = ProjectGraphQLRepositroy(httpClient: HTTPClient(githubToken: githubAccessToken))
+        
+        DispatchQueue.global().async {
+            // Fetch source project
+            let fetchProjectLoadingBar = context.console.loadingBar(title: "Fetching source project")
+            fetchProjectLoadingBar.start()
+            
+            let fetchProjectResult = repositroy.fetchProject(owner: owner, repo: repositoryName, projectNumber: sourceProjectNumber)
+            
+            guard let sourceProject = try? fetchProjectResult.get() else {
+                if case let .failure(error) = fetchProjectResult {
+                    context.console.error(error.localizedDescription)
+                }
+                fetchProjectLoadingBar.fail()
+                exit(EXIT_FAILURE)
+            }
+
+            fetchProjectLoadingBar.succeed()
+            
+            // Clone project
+            let cloneProjectLoadingBar = context.console.loadingBar(title: "Cloning project")
+            cloneProjectLoadingBar.start()
+            
+            let cloneProjectResult = repositroy.cloneProject(sourceProjectId: sourceProject.id, targetOwnerId: sourceProject.ownerId, newProjectName: newProjectName)
+            
+            guard let newProjectId = try? cloneProjectResult.get() else {
+                if case let .failure(error) = fetchProjectResult {
+                    context.console.error(error.localizedDescription)
+                }
+                fetchProjectLoadingBar.fail()
+                exit(EXIT_FAILURE)
+            }
+            
+            context.console.success("\(newProjectId)")
+            cloneProjectLoadingBar.succeed()
+            exit(EXIT_SUCCESS)
+        }
+        
+        dispatchMain()
     }
 }
 

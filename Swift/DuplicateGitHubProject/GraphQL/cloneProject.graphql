@@ -1,0 +1,12 @@
+mutation cloneProject($sourceId: String!, $targetOwnerId: String!, $projectName: String!) {
+  cloneProject(input: {
+    includeWorkflows:true,
+    sourceId: $sourceId,
+    name: $projectName,
+    targetOwnerId: $targetOwnerId
+  }) {
+    project {
+      number
+    }
+  }
+}

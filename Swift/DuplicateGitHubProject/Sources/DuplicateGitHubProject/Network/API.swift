@@ -4,6 +4,148 @@
 import Apollo
 import Foundation
 
+public final class CloneProjectMutation: GraphQLMutation {
+  /// The raw GraphQL definition of this operation.
+  public let operationDefinition: String =
+    """
+    mutation cloneProject($sourceId: String!, $targetOwnerId: String!, $projectName: String!) {
+      cloneProject(input: {includeWorkflows: true, sourceId: $sourceId, name: $projectName, targetOwnerId: $targetOwnerId}) {
+        __typename
+        project {
+          __typename
+          number
+        }
+      }
+    }
+    """
+
+  public let operationName: String = "cloneProject"
+
+  public var sourceId: String
+  public var targetOwnerId: String
+  public var projectName: String
+
+  public init(sourceId: String, targetOwnerId: String, projectName: String) {
+    self.sourceId = sourceId
+    self.targetOwnerId = targetOwnerId
+    self.projectName = projectName
+  }
+
+  public var variables: GraphQLMap? {
+    return ["sourceId": sourceId, "targetOwnerId": targetOwnerId, "projectName": projectName]
+  }
+
+  public struct Data: GraphQLSelectionSet {
+    public static let possibleTypes: [String] = ["Mutation"]
+
+    public static var selections: [GraphQLSelection] {
+      return [
+        GraphQLField("cloneProject", arguments: ["input": ["includeWorkflows": true, "sourceId": GraphQLVariable("sourceId"), "name": GraphQLVariable("projectName"), "targetOwnerId": GraphQLVariable("targetOwnerId")]], type: .object(CloneProject.selections)),
+      ]
+    }
+
+    public private(set) var resultMap: ResultMap
+
+    public init(unsafeResultMap: ResultMap) {
+      self.resultMap = unsafeResultMap
+    }
+
+    public init(cloneProject: CloneProject? = nil) {
+      self.init(unsafeResultMap: ["__typename": "Mutation", "cloneProject": cloneProject.flatMap { (value: CloneProject) -> ResultMap in value.resultMap }])
+    }
+
+    /// Creates a new project by cloning configuration from an existing project.
+    public var cloneProject: CloneProject? {
+      get {
+        return (resultMap["cloneProject"] as? ResultMap).flatMap { CloneProject(unsafeResultMap: $0) }
+      }
+      set {
+        resultMap.updateValue(newValue?.resultMap, forKey: "cloneProject")
+      }
+    }
+
+    public struct CloneProject: GraphQLSelectionSet {
+      public static let possibleTypes: [String] = ["CloneProjectPayload"]
+
+      public static var selections: [GraphQLSelection] {
+        return [
+          GraphQLField("__typename", type: .nonNull(.scalar(String.self))),
+          GraphQLField("project", type: .object(Project.selections)),
+        ]
+      }
+
+      public private(set) var resultMap: ResultMap
+
+      public init(unsafeResultMap: ResultMap) {
+        self.resultMap = unsafeResultMap
+      }
+
+      public init(project: Project? = nil) {
+        self.init(unsafeResultMap: ["__typename": "CloneProjectPayload", "project": project.flatMap { (value: Project) -> ResultMap in value.resultMap }])
+      }
+
+      public var __typename: String {
+        get {
+          return resultMap["__typename"]! as! String
+        }
+        set {
+          resultMap.updateValue(newValue, forKey: "__typename")
+        }
+      }
+
+      /// The new cloned project.
+      public var project: Project? {
+        get {
+          return (resultMap["project"] as? ResultMap).flatMap { Project(unsafeResultMap: $0) }
+        }
+        set {
+          resultMap.updateValue(newValue?.resultMap, forKey: "project")
+        }
+      }
+
+      public struct Project: GraphQLSelectionSet {
+        public static let possibleTypes: [String] = ["Project"]
+
+        public static var selections: [GraphQLSelection] {
+          return [
+            GraphQLField("__typename", type: .nonNull(.scalar(String.self))),
+            GraphQLField("number", type: .nonNull(.scalar(Int.self))),
+          ]
+        }
+
+        public private(set) var resultMap: ResultMap
+
+        public init(unsafeResultMap: ResultMap) {
+          self.resultMap = unsafeResultMap
+        }
+
+        public init(number: Int) {
+          self.init(unsafeResultMap: ["__typename": "Project", "number": number])
+        }
+
+        public var __typename: String {
+          get {
+            return resultMap["__typename"]! as! String
+          }
+          set {
+            resultMap.updateValue(newValue, forKey: "__typename")
+          }
+        }
+
+        /// The project's number.
+        public var number: Int {
+          get {
+            return resultMap["number"]! as! Int
+          }
+          set {
+            resultMap.updateValue(newValue, forKey: "number")
+          }
+        }
+      }
+    }
+  }
+}
+
 public final class FetchSourceRepositoryQuery: GraphQLQuery {
   /// The raw GraphQL definition of this operation.
   public let operationDefinition: String =

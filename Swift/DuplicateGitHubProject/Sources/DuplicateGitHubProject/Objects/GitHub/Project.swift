@@ -9,5 +9,6 @@ struct Project: Node {
     let name: String
     let number: Int
     let ownerId: String
+    let urlString: String
     let columns: [ProjectColumn]
 }

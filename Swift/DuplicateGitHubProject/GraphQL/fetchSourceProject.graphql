@@ -4,6 +4,7 @@ query fetchSourceRepository($owner: String!, $repo: String!, $projectNumber: Int
       id
       number
       name
+      url
       owner {
         id
       }

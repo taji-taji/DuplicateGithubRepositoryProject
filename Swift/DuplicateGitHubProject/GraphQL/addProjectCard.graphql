@@ -1,0 +1,8 @@
+mutation addProjectCard($note: String!, $projectColumnId: String!) {
+  addProjectCard(input: {
+    note: $note,
+    projectColumnId: $projectColumnId
+  }) {
+    clientMutationId
+  }
+}

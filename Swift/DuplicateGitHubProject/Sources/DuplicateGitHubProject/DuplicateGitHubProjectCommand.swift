@@ -79,20 +79,41 @@ struct DuplicateGitHubProjectCommand: Command {
             }
             
             cloneProjectLoadingBar.succeed()
-            context.console.success("\(newProjectNumber)")
             
             // Wait for cloning columns
             
-            do {
-                let clonedProject = try fetchCloningProject(console: context.console, repository: repository, owner: owner, repo: repositoryName, projectNumber: newProjectNumber, sourceProject: sourceProject)
-                context.console.success(clonedProject.name)
-            } catch let error {
-                context.console.error(error.localizedDescription)
+            context.console.info("Start adding cards.")
+            
+            let clonedProjectResult = fetchCloningProject(console: context.console, repository: repository, owner: owner, repo: repositoryName, projectNumber: newProjectNumber, sourceProject: sourceProject)
+            
+            guard let clonedProject = try? clonedProjectResult.get() else {
+                if case let .failure(error) = clonedProjectResult {
+                    context.console.error(error.localizedDescription)
+                }
                 exit(EXIT_FAILURE)
             }
             
             // Add cards to cloned project
             
+            for sourceProjectColumn in sourceProject.columns {
+                guard let column = clonedProject.columns.first(where: { $0.name == sourceProjectColumn.name }) else { break }
+                let addCardLoadingBar = context.console.loadingBar(title: "Add cards to column [\(column.name)]")
+                addCardLoadingBar.start()
+                for card in sourceProjectColumn.cards.reversed() {
+                    let result = repository.addProjectCard(note: card.note ?? "", projectColumnId: column.id)
+                    guard let _ = try? result.get() else {
+                        if case let .failure(error) = result {
+                            context.console.error(error.localizedDescription)
+                        }
+                        addCardLoadingBar.fail()
+                        exit(EXIT_FAILURE)
+                    }
+                }
+                addCardLoadingBar.succeed()
+            }
+            
+            context.console.success("Successfully cloned the project.")
+            context.console.info("Cloned project: \(clonedProject.urlString)")
             exit(EXIT_SUCCESS)
         }
         
@@ -101,18 +122,18 @@ struct DuplicateGitHubProjectCommand: Command {
 }
 
 private extension DuplicateGitHubProjectCommand {
-    func fetchCloningProject(console: Console, repository: ProjectGraphQLRepositroy, owner: String, repo: String, projectNumber: Int, sourceProject: Project) throws -> Project {
+    func fetchCloningProject(console: Console, repository: ProjectGraphQLRepositroy, owner: String, repo: String, projectNumber: Int, sourceProject: Project) -> Result<Project, Error> {
         let fetchProjectResult = repository.fetchProject(owner: owner, repo: repo, projectNumber: projectNumber)
         
-        let project = try fetchProjectResult.get()
-        console.info("\(projectNumber)")
-        console.info(project.columns.map({ $0.name }).joined(separator: ","))
-        console.info(sourceProject.columns.map({ $0.name }).joined(separator: ","))
-        if project.columns.count == sourceProject.columns.count {
-            return project
+        do {
+            let project = try fetchProjectResult.get()
+            if project.columns.count == sourceProject.columns.count {
+                return .success(project)
+            }
+            Thread.sleep(forTimeInterval: 1)
+            return fetchCloningProject(console: console, repository: repository, owner: owner, repo: repo, projectNumber: projectNumber, sourceProject: sourceProject)
+        } catch let error {
+            return .failure(error)
         }
-        console.info("aaaaa")
-        Thread.sleep(forTimeInterval: 1)
-        return try fetchCloningProject(console: console, repository: repository, owner: owner, repo: repo, projectNumber: projectNumber, sourceProject: sourceProject)
     }
 }

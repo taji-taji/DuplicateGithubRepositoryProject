@@ -8,6 +8,7 @@ import Foundation
 protocol ProjectRepositroyInterface {
     func fetchProject(owner: String, repo: String, projectNumber: Int) -> Result<Project, Error>
     func cloneProject(sourceProjectId: String, targetOwnerId: String, newProjectName: String) -> Result<Int, Error>
+    func addProjectCard(note: String, projectColumnId: String) -> Result<(), Error>
 }
 
 final class ProjectGraphQLRepositroy: ProjectRepositroyInterface {
@@ -74,11 +75,35 @@ final class ProjectGraphQLRepositroy: ProjectRepositroyInterface {
         guard let result = projectNumber else { return .failure(error!) }
         return .success(result)
     }
+    
+    func addProjectCard(note: String, projectColumnId: String) -> Result<(), Error> {
+        var succeeded: Bool = false
+        var error: Error?
+        
+        let semaphore = DispatchSemaphore(value: 0)
+        let mutation = AddProjectCardMutation(note: note, projectColumnId: projectColumnId)
+        httpClient.perform(mutation: mutation) { result in
+            switch result {
+            case .success:
+                succeeded = true
+                semaphore.signal()
+                
+            case .failure(let _error):
+                error = _error
+                semaphore.signal()
+            }
+        }
+        
+        semaphore.wait()
+        
+        guard succeeded else { return .failure(error!) }
+        return .success(())
+    }
 }
 
 private extension FetchSourceRepositoryQuery.Data.Repository.Project {
     func convertToEntity() -> Project {
-        Project(id: id, name: name, number: number, ownerId: owner.id, columns: columns.convertToEntities())
+        Project(id: id, name: name, number: number, ownerId: owner.id, urlString: url, columns: columns.convertToEntities())
     }
 }
 

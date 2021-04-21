@@ -26,7 +26,7 @@ final class HTTPClient: HTTPClientInterface {
     }
 
     func fetch<Query: GraphQLQuery>(query: Query, resultHandler: GraphQLResultHandler<Query.Data>?) {
-        client.fetch(query: query, resultHandler: resultHandler)
+        client.fetch(query: query, cachePolicy: .fetchIgnoringCacheData, resultHandler: resultHandler)
     }
     
     func perform<Mutation: GraphQLMutation>(mutation: Mutation, resultHandler: GraphQLResultHandler<Mutation.Data>?) {

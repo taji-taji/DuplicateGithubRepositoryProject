@@ -25,7 +25,6 @@ struct DuplicateGitHubProjectCommand: Command {
     }
 
     func run(using context: CommandContext, signature: Signature) throws {
-        // TODO: - duplicate GitHub project
         guard let githubAccessToken = signature.githubAccessToken ?? ProcessInfo.processInfo.environment["GITHUB_TOKEN"] else {
             // TODO: Error Handling
             return
@@ -46,14 +45,14 @@ struct DuplicateGitHubProjectCommand: Command {
             // TODO: Error Handling
             return
         }
-        let repositroy = ProjectGraphQLRepositroy(httpClient: HTTPClient(githubToken: githubAccessToken))
+        let repository = ProjectGraphQLRepositroy(httpClient: HTTPClient(githubToken: githubAccessToken))
         
         DispatchQueue.global().async {
             // Fetch source project
             let fetchProjectLoadingBar = context.console.loadingBar(title: "Fetching source project")
             fetchProjectLoadingBar.start()
             
-            let fetchProjectResult = repositroy.fetchProject(owner: owner, repo: repositoryName, projectNumber: sourceProjectNumber)
+            let fetchProjectResult = repository.fetchProject(owner: owner, repo: repositoryName, projectNumber: sourceProjectNumber)
             
             guard let sourceProject = try? fetchProjectResult.get() else {
                 if case let .failure(error) = fetchProjectResult {
@@ -69,9 +68,9 @@ struct DuplicateGitHubProjectCommand: Command {
             let cloneProjectLoadingBar = context.console.loadingBar(title: "Cloning project")
             cloneProjectLoadingBar.start()
             
-            let cloneProjectResult = repositroy.cloneProject(sourceProjectId: sourceProject.id, targetOwnerId: sourceProject.ownerId, newProjectName: newProjectName)
+            let cloneProjectResult = repository.cloneProject(sourceProjectId: sourceProject.id, targetOwnerId: sourceProject.ownerId, newProjectName: newProjectName)
             
-            guard let newProjectId = try? cloneProjectResult.get() else {
+            guard let newProjectNumber = try? cloneProjectResult.get() else {
                 if case let .failure(error) = fetchProjectResult {
                     context.console.error(error.localizedDescription)
                 }
@@ -79,8 +78,21 @@ struct DuplicateGitHubProjectCommand: Command {
                 exit(EXIT_FAILURE)
             }
             
-            context.console.success("\(newProjectId)")
             cloneProjectLoadingBar.succeed()
+            context.console.success("\(newProjectNumber)")
+            
+            // Wait for cloning columns
+            
+            do {
+                let clonedProject = try fetchCloningProject(console: context.console, repository: repository, owner: owner, repo: repositoryName, projectNumber: newProjectNumber, sourceProject: sourceProject)
+                context.console.success(clonedProject.name)
+            } catch let error {
+                context.console.error(error.localizedDescription)
+                exit(EXIT_FAILURE)
+            }
+            
+            // Add cards to cloned project
+            
             exit(EXIT_SUCCESS)
         }
         
@@ -88,3 +100,19 @@ struct DuplicateGitHubProjectCommand: Command {
     }
 }
 
+private extension DuplicateGitHubProjectCommand {
+    func fetchCloningProject(console: Console, repository: ProjectGraphQLRepositroy, owner: String, repo: String, projectNumber: Int, sourceProject: Project) throws -> Project {
+        let fetchProjectResult = repository.fetchProject(owner: owner, repo: repo, projectNumber: projectNumber)
+        
+        let project = try fetchProjectResult.get()
+        console.info("\(projectNumber)")
+        console.info(project.columns.map({ $0.name }).joined(separator: ","))
+        console.info(sourceProject.columns.map({ $0.name }).joined(separator: ","))
+        if project.columns.count == sourceProject.columns.count {
+            return project
+        }
+        console.info("aaaaa")
+        Thread.sleep(forTimeInterval: 1)
+        return try fetchCloningProject(console: console, repository: repository, owner: owner, repo: repo, projectNumber: projectNumber, sourceProject: sourceProject)
+    }
+}

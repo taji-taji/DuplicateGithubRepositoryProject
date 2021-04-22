@@ -30,6 +30,8 @@ struct DuplicateGitHubProjectCommand: Command {
             input = try parse(signature: signature)
         } catch let error {
             context.console.error(error.localizedDescription)
+            var context = context
+            outputHelp(using: &context)
             exit(EXIT_FAILURE)
         }
         let repository = ProjectGraphQLRepositroy(httpClient: HTTPClient(githubToken: input.githubAccessToken))

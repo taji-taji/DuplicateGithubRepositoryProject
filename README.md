@@ -1,4 +1,4 @@
-# GitHubRepositoryProjectsTemplate
+# DuplicateGithubRepositoryProject
 
 ## About
 

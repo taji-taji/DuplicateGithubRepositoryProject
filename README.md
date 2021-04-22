@@ -2,31 +2,40 @@
 
 ## About
 
-- GitHub のリポジトリ Project とその Project 内の「カラム」と「カード」と「Automation設定」を複製するスクリプトです
-- プロジェクトのテンプレートを用意し GitHub の GUI 上から複製した場合、コピーされるのは「カラム」と「Automation設定」のみで、カードはコピーされません
-- このスクリプトを利用することで「カード」も複製することが出来ます
+This command duplicates a GitHub repository project, including its cards.
+
 
 ## Usage
 
 ```sh
-./duplicateGitHubProject -s 12345 -o taji-taji -r YourRepositoryName -t xxxxxxxx -n NewProjectName
+duplicate-github-project --github_access_token xxxxxxx --new_project_name NewProjectName --source_project_number 1 --owner RepositoryOwnerName -repository_name RepositoryName
 ```
 
-### Options
+You can use the environment variable `GITHUB_TOKEN` instead of the `--github_access_token` option.
 
-- `-s`: 複製元のプロジェクトの番号 (プロジェクトの URL の末尾の数字)
-- `-o`: オーナー名
-- `-r`: リポジトリ名
-- `-t`: GitHub アクセストークン
-- `-n`: 新しく作成するプロジェクト名
-- `-h`: ヘルプ
+```sh
+GITHUB_TOKEN=xxxxxx duplicate-github-project --new_project_name NewProjectName --source_project_number 1 --owner RepositoryOwnerName -repository_name RepositoryName
+```
 
-## Required
+The `--help` option outputs help.
 
-- curl
-- jq
+```sh
+duplicate-github-project.--help
+
+
+Usage: duplicate-github-project [--github_access_token,-t] [--new_project_name,-n] [--source_project_number,-s] [--owner,-o] [--repository_name,-r] 
+
+This command duplicates a GitHub repository project, including its cards.
+
+Options:
+    github_access_token GitHub Access Token
+       new_project_name Name for duplicated project
+  source_project_number Project number for source project
+                  owner Owner name for project
+        repository_name Repository name for project
+```
 
 ## Note
 
-- リポジトリ Project のみ対応です
-  - Organization Project や User Project には対応していません
+- Only Repository Project is supported.
+  - Organization Project and User Project are not supported.
